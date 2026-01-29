@@ -546,6 +546,217 @@
   </div>
 </footer>
 
-<script src="script.js"></script>
+<script>
+// Configuration
+const API_BASE_URL = "http://localhost:3000"; // Change to your actual API
+
+// Sports scrolling functions
+function scrollSports(direction) {
+    const sportsGrid = document.querySelector('.sports-grid');
+    if (!sportsGrid) return;
+    const scrollAmount = 400;
+    sportsGrid.scrollBy({ 
+        left: direction === 'left' ? -scrollAmount : scrollAmount, 
+        behavior: 'smooth' 
+    });
+}
+
+function scrollSportsEvents(direction) {
+    const sportsEventsGrid = document.querySelector('.sports-events-grid');
+    if (!sportsEventsGrid) return;
+    const scrollAmount = 400;
+    sportsEventsGrid.scrollBy({ 
+        left: direction === 'left' ? -scrollAmount : scrollAmount, 
+        behavior: 'smooth' 
+    });
+}
+
+// Login/Modal functions
+function toggleLogin() {
+    const loginSection = document.getElementById('login');
+    if (!loginSection) return;
+    
+    if (loginSection.classList.contains('active')) {
+        loginSection.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    } else {
+        loginSection.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        showLoginForm();
+    }
+}
+
+function toggleSignup(e) {
+    if (e) e.preventDefault();
+    const loginForm = document.getElementById('login-form-container');
+    const signupForm = document.getElementById('signup-form-container');
+    
+    if (loginForm && signupForm) {
+        loginForm.classList.toggle('active');
+        signupForm.classList.toggle('active');
+    }
+}
+
+function showLoginForm() {
+    const loginForm = document.getElementById('login-form-container');
+    const signupForm = document.getElementById('signup-form-container');
+    
+    if (loginForm) loginForm.classList.add('active');
+    if (signupForm) signupForm.classList.remove('active');
+}
+
+// Plan selection
+let selectedPlan = null;
+
+function selectPlan(planId, planName, price) {
+    selectedPlan = { id: planId, name: planName, price: price };
+    
+    document.getElementById('planType').textContent = planName;
+    document.getElementById('planPrice').textContent = '$' + price.toFixed(2);
+    
+    const tax = (price * 0.08).toFixed(2);
+    const total = (price + parseFloat(tax)).toFixed(2);
+    
+    document.getElementById('subtotal').textContent = '$' + price.toFixed(2);
+    document.getElementById('tax').textContent = '$' + tax;
+    document.getElementById('total').textContent = '$' + total;
+
+    // Scroll to checkout
+    const checkout = document.getElementById('checkout');
+    if (checkout) {
+        checkout.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Payment processing
+async function processPayment() {
+    const fullname = document.getElementById('fullname')?.value;
+    const email = document.getElementById('email')?.value;
+    
+    if (!fullname || !email) {
+        alert('Please enter your name and email');
+        return;
+    }
+
+    if (!selectedPlan) {
+        alert('Please select a plan first');
+        return;
+    }
+
+    const btn = document.querySelector('.btn-checkout');
+    if (!btn) return;
+    
+    const originalText = btn.textContent;
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+
+    try {
+        // Your payment processing logic here
+        console.log('Processing payment for:', selectedPlan.name);
+        
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        alert(`✅ Payment Successful!\n\nPlan: ${selectedPlan.name}\nAmount: $${selectedPlan.price}\n\nWe will contact you shortly.`);
+        
+        // Reset form
+        const form = document.querySelector('.checkout-form');
+        if (form) form.reset();
+        selectedPlan = null;
+        
+    } catch (error) {
+        console.error('Payment error:', error);
+        alert('Payment failed. Please try again.');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Form submissions
+async function handleSignup(e) {
+    e.preventDefault();
+    
+    const fullname = document.getElementById('signup-fullname')?.value;
+    const email = document.getElementById('signup-email')?.value;
+    const password = document.getElementById('signup-password')?.value;
+    const confirmPassword = document.getElementById('signup-confirm-password')?.value;
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match');
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('Password must be at least 6 characters');
+        return;
+    }
+
+    alert('Account created successfully!');
+    toggleSignup();
+}
+
+function submitContactForm() {
+    const name = document.getElementById('contact-name')?.value || 'Not provided';
+    const email = document.getElementById('contact-email')?.value || 'Not provided';
+    const message = document.getElementById('contact-message')?.value || 'Not provided';
+    
+    alert(`Message sent!\n\nName: ${name}\nEmail: ${email}\n\nWe'll contact you soon.`);
+    
+    // Clear form
+    if (document.getElementById('contact-name')) {
+        document.getElementById('contact-name').value = '';
+        document.getElementById('contact-email').value = '';
+        document.getElementById('contact-message').value = '';
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href === '#login') return;
+            
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                target.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }
+        });
+    });
+
+    // Form event listeners
+    const signupForm = document.querySelector('.signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', handleSignup);
+    }
+
+    // Close modal when clicking background
+    const loginSection = document.getElementById('login');
+    if (loginSection) {
+        loginSection.addEventListener('click', function(e) {
+            if (e.target === this) {
+                toggleLogin();
+            }
+        });
+    }
+
+    // Make functions globally available
+    window.selectPlan = selectPlan;
+    window.scrollSports = scrollSports;
+    window.scrollSportsEvents = scrollSportsEvents;
+    window.toggleLogin = toggleLogin;
+    window.toggleSignup = toggleSignup;
+    window.processPayment = processPayment;
+    window.submitContactForm = submitContactForm;
+    
+    console.log('✅ Website initialized');
+});
+</script>
 </body>
 </html>
