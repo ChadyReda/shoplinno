@@ -192,6 +192,7 @@
             <!-- Removed extra images, keeping only one -->
           </div>
           <img src="img/360_F_817105185_7oWLF4mZciA0Kj92VKOIM6sOh8TfJcAg.jpg" alt="Football" class="sport-card-img big-img">
+          <img src="img/images (3).jfif" alt="NBA" >
           <div class="sport-card-footer">
             <h4>Football</h4>
             <p>Live football matches</p>
@@ -204,6 +205,7 @@
             <!-- Removed extra images -->
           </div>
           <img src="img/Michael-Jordan.webp" alt="Basketball" class="sport-card-img big-img">
+          <img src="img/nba-logo-design.webp" alt="NBA" >
           <div class="sport-card-footer">
             <h4>Basketball</h4>
             <p>NBA & International</p>
@@ -216,6 +218,7 @@
             <!-- Removed extra images -->
           </div>
           <img src="img/tennis-1.webp" alt="Tennis" class="sport-card-img big-img">
+          <img src="img/Roger-Federer-2012.webp" alt="NBA" >
           <div class="sport-card-footer">
             <h4>Tennis</h4>
             <p>Grand Slam tournaments</p>
@@ -228,6 +231,7 @@
             <!-- Removed extra images -->
           </div>
           <img src="img/rio-de-janeiro-brazil-january-260nw-2253186927.webp" alt="UFC" class="sport-card-img big-img">
+          <img src="img/hq720.jpg" alt="NBA" >
           <div class="sport-card-footer">
             <h4>UFC</h4>
             <p>Mixed martial arts</p>
@@ -332,7 +336,7 @@
 <section id="checkout" class="checkout-section">
   <div class="container">
     <h2>Complete Your Subscription</h2>
-    <p class="section-subtitle">Enter your details and select your payment method</p>
+    <p class="section-subtitle">Enter your details and our team will contact you shortly</p>
     
     <div class="checkout-wrapper">
       <!-- User Information Form -->
@@ -382,7 +386,7 @@
         </form>
       </div>
 
-      <!-- Order Summary & Payment -->
+      <!-- Order Summary -->
       <div class="checkout-summary-container">
         <h3>Order Summary</h3>
         
@@ -411,34 +415,13 @@
           </div>
         </div>
 
-        <h4 style="margin-top: 30px; margin-bottom: 15px;">Payment Method</h4>
-        
-        <div class="payment-methods">
-          <label class="payment-option">
-            <input type="radio" name="payment" value="credit" checked>
-            <span class="payment-label">
-              <span class="payment-icon">💳</span>
-              <span>Credit Card</span>
-            </span>
-          </label>
-          <label class="payment-option">
-            <input type="radio" name="payment" value="paypal">
-            <span class="payment-label">
-              <span class="payment-icon">🅿️</span>
-              <span>PayPal</span>
-            </span>
-          </label>
-          <label class="payment-option">
-            <input type="radio" name="payment" value="crypto">
-            <span class="payment-label">
-              <span class="payment-icon">₿</span>
-              <span>Cryptocurrency</span>
-            </span>
-          </label>
+        <div class="contact-method-info">
+          <h4>Next Steps</h4>
+          <p>After submitting your details, our team will contact you within 24 hours to complete your subscription setup and provide payment options.</p>
         </div>
 
-        <button class="btn-checkout" onclick="processPayment()">Proceed to Payment</button>
-        <p class="payment-secure">🔒 Your payment is secure and encrypted</p>
+        <button class="btn-checkout" onclick="processSubscription()">Submit Details</button>
+        <p class="payment-secure">🔒 Your information is secure and protected</p>
       </div>
     </div>
   </div>
@@ -565,58 +548,57 @@
   window.selectPlan = selectPlan;
 
   // ----------------- Payment -----------------
-  async function processPayment() {
-    if (!selectedPlan) return alert("Please select a plan first");
+  // ----------------- Subscription Submission -----------------
+async function processPayment() {
+  if (!selectedPlan) return alert("Please select a plan first");
 
-    const fullname = $("fullname")?.value.trim();
-    const email = $("email")?.value.trim();
-    const phone = $("phone")?.value.trim() || "";
+  const fullname = $("fullname")?.value.trim();
+  const email = $("email")?.value.trim();
+  const phone = $("phone")?.value.trim() || "";
 
-    if (!fullname || !email) return alert("Name & email are required");
+  if (!fullname || !email) return alert("Name & email are required");
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/subscribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan_id: selectedPlan.id,
-          customer_info: { fullname, email, phone }
-        })
-      });
+  try {
+    const res = await fetch(`${API_BASE_URL}/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plan_id: selectedPlan.id,
+        customer_info: { fullname, email, phone }
+      })
+    });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Payment failed");
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Submission failed");
 
-      alert("Payment successful! Activation coming soon 🚀");
+    alert("Thank you! Our team will contact you soon to complete your subscription. 🚀");
 
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Payment failed");
-    }
+    // Clear form
+    $("fullname").value = "";
+    $("email").value = "";
+    $("phone").value = "";
+    $("country").value = "";
+    $("address").value = "";
+    $("city").value = "";
+    $("zip").value = "";
+
+    // Reset plan selection
+    selectedPlan = null;
+    $("planType").textContent = "No plan selected";
+    $("planPrice").textContent = "$0.00";
+    $("subtotal").textContent = "$0.00";
+    $("tax").textContent = "$0.00";
+    $("total").textContent = "$0.00";
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Unable to submit details");
   }
+}
 
-  window.processPayment = processPayment;
+window.processPayment = processPayment;
 
-  // ----------------- Signup -----------------
-  async function handleSignup(e) {
-    e.preventDefault();
-
-    const fullname = $("signup-fullname").value.trim();
-    const email = $("signup-email").value.trim();
-    const password = $("signup-password").value;
-    const confirm = $("signup-confirm-password").value;
-
-    if (!fullname || !email || !password || !confirm)
-      return alert("Fill all fields");
-
-    if (password !== confirm) return alert("Passwords do not match");
-    if (password.length < 6) return alert("Password too short");
-
-    alert("Account created successfully 🎉");
-
-    toggleSignup();
-  }
-
+ 
   // ----------------- Contact -----------------
   async function submitContactForm() {
     const name = $("contact-name").value.trim();
