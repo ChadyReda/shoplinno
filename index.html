@@ -548,359 +548,158 @@
 </footer>
 
 <script>
-// Configuration
-const API_BASE_URL = "https://shoplinno-backend.vercel.app/api"; // Backend API base URL
+  const API_BASE_URL = "https://shoplinno-backend.vercel.app/api";
 
-// Sports scrolling functions
-function scrollSports(direction) {
-    const sportsGrid = document.querySelector('.sports-grid');
-    if (!sportsGrid) return;
-    const scrollAmount = 400;
-    sportsGrid.scrollBy({ 
-        left: direction === 'left' ? -scrollAmount : scrollAmount, 
-        behavior: 'smooth' 
-    });
-}
+  let selectedPlan = null;
 
-function scrollSportsEvents(direction) {
-    const sportsEventsGrid = document.querySelector('.sports-events-grid');
-    if (!sportsEventsGrid) return;
-    const scrollAmount = 400;
-    sportsEventsGrid.scrollBy({ 
-        left: direction === 'left' ? -scrollAmount : scrollAmount, 
-        behavior: 'smooth' 
-    });
-}
+  // ----------------- Helpers -----------------
+  const $ = id => document.getElementById(id);
 
-// Login/Modal functions
-function toggleLogin() {
-    const loginSection = document.getElementById('login');
-    if (!loginSection) return;
-    
-    if (loginSection.classList.contains('active')) {
-        loginSection.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    } else {
-        loginSection.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        showLoginForm();
-    }
-}
+  // ----------------- Scroll ------------------
+  function horizontalScroll(selector, dir, amount = 400) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  }
 
-function toggleSignup(e) {
-    if (e) e.preventDefault();
-    const loginForm = document.getElementById('login-form-container');
-    const signupForm = document.getElementById('signup-form-container');
-    
-    if (loginForm && signupForm) {
-        loginForm.classList.toggle('active');
-        signupForm.classList.toggle('active');
-    }
-}
+  window.scrollSports = dir => horizontalScroll(".sports-grid", dir);
+  window.scrollSportsEvents = dir => horizontalScroll(".sports-events-grid", dir);
 
-function showLoginForm() {
-    const loginForm = document.getElementById('login-form-container');
-    const signupForm = document.getElementById('signup-form-container');
-    
-    if (loginForm) loginForm.classList.add('active');
-    if (signupForm) signupForm.classList.remove('active');
-}
+  // ----------------- Login Modal -----------------
+  function toggleLogin() {
+    const modal = $("login");
+    if (!modal) return;
 
-// Plan selection
-let selectedPlan = null;
+    modal.classList.toggle("active");
+    document.body.style.overflow =
+      modal.classList.contains("active") ? "hidden" : "auto";
+  }
 
-// Fetch plans from backend
-async function fetchPlans() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/plans`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        if (data.success && data.plans) {
-            // Update the UI with fetched plans
-            updatePlansUI(data.plans);
-            return data.plans;
-        } else {
-            console.error('Invalid response format:', data);
-            return null;
-        }
-    } catch (error) {
-        console.error('Error fetching plans:', error);
-        // Fallback to default plans if API fails
-        const defaultPlans = [
-            { id: 'monthly', name: 'Basic', price: 15.99, features: [] },
-            { id: '2months', name: 'Standard', price: 29.99, features: [] },
-            { id: 'annual', name: 'Premium', price: 149.99, features: [] }
-        ];
-        updatePlansUI(defaultPlans);
-        return defaultPlans;
-    }
-}
-
-function updatePlansUI(plans) {
-    // Update plan cards dynamically
-    const planCards = document.querySelectorAll('.plan-card');
-    if (planCards.length === plans.length) {
-        plans.forEach((plan, index) => {
-            const card = planCards[index];
-            if (card) {
-                const planName = card.querySelector('.plan-name');
-                const planPrice = card.querySelector('.plan-price');
-                const planButton = card.querySelector('.plan-select-btn');
-                
-                if (planName) planName.textContent = plan.name;
-                if (planPrice) planPrice.textContent = `$${plan.price.toFixed(2)}/mo`;
-                if (planButton) {
-                    planButton.setAttribute('onclick', `selectPlan('${plan.id}', '${plan.name}', ${plan.price})`);
-                }
-            }
-        });
-    }
-}
-
-function selectPlan(planId, planName, price) {
-    selectedPlan = { id: planId, name: planName, price: price };
-    
-    document.getElementById('planType').textContent = planName;
-    document.getElementById('planPrice').textContent = '$' + price.toFixed(2);
-    
-    const tax = (price * 0.08).toFixed(2);
-    const total = (price + parseFloat(tax)).toFixed(2);
-    
-    document.getElementById('subtotal').textContent = '$' + price.toFixed(2);
-    document.getElementById('tax').textContent = '$' + tax;
-    document.getElementById('total').textContent = '$' + total;
-
-    // Scroll to checkout
-    const checkout = document.getElementById('checkout');
-    if (checkout) {
-        checkout.scrollIntoView({ behavior: 'smooth' });
-    }
-}
-
-// Payment processing - Updated to call your backend
-async function processPayment() {
-    const fullname = document.getElementById('fullname')?.value;
-    const email = document.getElementById('email')?.value;
-    const phone = document.getElementById('phone')?.value || '';
-    const paymentMethod = document.getElementById('payment-method')?.value || 'credit_card';
-    
-    if (!fullname || !email) {
-        alert('Please enter your name and email');
-        return;
-    }
-
-    if (!selectedPlan) {
-        alert('Please select a plan first');
-        return;
-    }
-
-    const btn = document.querySelector('.btn-checkout');
-    if (!btn) return;
-    
-    const originalText = btn.textContent;
-    btn.textContent = 'Processing...';
-    btn.disabled = true;
-
-    try {
-        // Generate a user ID (in a real app, you'd have user authentication)
-        const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Prepare subscription data
-        const subscriptionData = {
-            user_id: userId,
-            plan_id: selectedPlan.id,
-            payment_method: paymentMethod,
-            customer_info: {
-                fullname,
-                email,
-                phone
-            }
-        };
-
-        // Make API call to your backend
-        const response = await fetch(`${API_BASE_URL}/subscribe`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(subscriptionData)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`✅ Payment Successful!\n\nPlan: ${selectedPlan.name}\nAmount: $${selectedPlan.price}\n\nWe will contact you shortly with activation details.`);
-            
-            // Reset form
-            const form = document.querySelector('.checkout-form');
-            if (form) form.reset();
-            selectedPlan = null;
-            
-            // Optionally redirect to thank you page or update UI
-            const checkoutSection = document.getElementById('checkout');
-            if (checkoutSection) {
-                checkoutSection.innerHTML = `
-                    <div class="thank-you-message">
-                        <h2>🎉 Thank You for Your Purchase!</h2>
-                        <p>Your subscription has been processed successfully.</p>
-                        <p>We'll send activation instructions to your email within 24 hours.</p>
-                        <button onclick="window.location.href='#'" class="btn btn-primary">Return to Home</button>
-                    </div>
-                `;
-            }
-        } else {
-            throw new Error(result.error || 'Payment failed');
-        }
-        
-    } catch (error) {
-        console.error('Payment error:', error);
-        alert(`Payment failed: ${error.message}\n\nPlease try again or contact support.`);
-    } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-    }
-}
-
-// Form submissions
-async function handleSignup(e) {
+  $("loginBtn")?.addEventListener("click", e => {
     e.preventDefault();
-    
-    const fullname = document.getElementById('signup-fullname')?.value;
-    const email = document.getElementById('signup-email')?.value;
-    const password = document.getElementById('signup-password')?.value;
-    const confirmPassword = document.getElementById('signup-confirm-password')?.value;
-    
-    if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
-    }
-    
-    if (password.length < 6) {
-        alert('Password must be at least 6 characters');
-        return;
-    }
+    toggleLogin();
+  });
 
-    // In a real implementation, you would call your backend here
-    // For example: await fetch(`${API_BASE_URL}/auth/signup`, { method: 'POST', body: ... })
-    
-    alert('Account created successfully! Please log in.');
+  window.toggleLogin = toggleLogin;
+
+  window.toggleSignup = e => {
+    e?.preventDefault();
+    $("login-form-container")?.classList.toggle("active");
+    $("signup-form-container")?.classList.toggle("active");
+  };
+
+  // ----------------- Plan Selection -----------------
+  function selectPlan(id, name, price) {
+    selectedPlan = { id, name, price };
+
+    $("planType").textContent = name;
+    $("planPrice").textContent = `$${price.toFixed(2)}`;
+
+    const tax = +(price * 0.08).toFixed(2);
+    const total = (price + tax).toFixed(2);
+
+    $("subtotal").textContent = `$${price.toFixed(2)}`;
+    $("tax").textContent = `$${tax}`;
+    $("total").textContent = `$${total}`;
+
+    $("checkout")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  window.selectPlan = selectPlan;
+
+  // ----------------- Payment -----------------
+  async function processPayment() {
+    if (!selectedPlan) return alert("Please select a plan first");
+
+    const fullname = $("fullname")?.value.trim();
+    const email = $("email")?.value.trim();
+    const phone = $("phone")?.value.trim() || "";
+
+    if (!fullname || !email) return alert("Name & email are required");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan_id: selectedPlan.id,
+          customer_info: { fullname, email, phone }
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Payment failed");
+
+      alert("Payment successful! Activation coming soon 🚀");
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Payment failed");
+    }
+  }
+
+  window.processPayment = processPayment;
+
+  // ----------------- Signup -----------------
+  async function handleSignup(e) {
+    e.preventDefault();
+
+    const fullname = $("signup-fullname").value.trim();
+    const email = $("signup-email").value.trim();
+    const password = $("signup-password").value;
+    const confirm = $("signup-confirm-password").value;
+
+    if (!fullname || !email || !password || !confirm)
+      return alert("Fill all fields");
+
+    if (password !== confirm) return alert("Passwords do not match");
+    if (password.length < 6) return alert("Password too short");
+
+    alert("Account created successfully 🎉");
+
     toggleSignup();
-}
+  }
 
-async function submitContactForm() {
-    const name = document.getElementById('contact-name')?.value.trim();
-    const email = document.getElementById('contact-email')?.value.trim();
-    const message = document.getElementById('contact-message')?.value.trim();
-    
-    // Basic validation
-    if (!name || !email || !message) {
-        alert('Please fill in all fields');
-        return;
+  // ----------------- Contact -----------------
+  async function submitContactForm() {
+    const name = $("contact-name").value.trim();
+    const email = $("contact-email").value.trim();
+    const message = $("contact-message").value.trim();
+
+    if (!name || !email || !message)
+      return alert("Fill all fields");
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Send failed");
+
+      alert("Message sent successfully ❤️");
+
+      $("contact-name").value = "";
+      $("contact-email").value = "";
+      $("contact-message").value = "";
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Unable to send message");
     }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        alert('Please enter a valid email address');
-        return;
-    }
-    
-    const submitBtn = document.querySelector('.contact-form button[type="button"]');
-    if (submitBtn) {
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Sending...';
-        submitBtn.disabled = true;
-        
-        try {
-            const response = await fetch(`${API_BASE_URL}/contact`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name, email, message })
-            });
+  }
 
-            const result = await response.json();
-            
-            if (result.success) {
-                alert(`✅ Message sent successfully!\n\nThank you ${name}, we'll get back to you soon.`);
-                
-                // Clear form
-                if (document.getElementById('contact-name')) {
-                    document.getElementById('contact-name').value = '';
-                    document.getElementById('contact-email').value = '';
-                    document.getElementById('contact-message').value = '';
-                }
-            } else {
-                throw new Error(result.error || 'Failed to send message');
-            }
-        } catch (error) {
-            console.error('Contact form error:', error);
-            alert(`❌ Unable to send message: ${error.message}\n\nPlease try again or email us directly.`);
-        } finally {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        }
-    }
-}
+  window.submitContactForm = submitContactForm;
 
-// Initialize
-document.addEventListener('DOMContentLoaded', async function() {
-    // Smooth scroll
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            const href = this.getAttribute('href');
-            if (href === '#login') return;
-            
-            e.preventDefault();
-            const target = document.querySelector(href);
-            if (target) {
-                target.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
-                });
-            }
-        });
-    });
+  // ----------------- Init -----------------
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelector(".signup-form")
+      ?.addEventListener("submit", handleSignup);
 
-    // Form event listeners
-    const signupForm = document.querySelector('.signup-form');
-    if (signupForm) {
-        signupForm.addEventListener('submit', handleSignup);
-    }
-
-    // Close modal when clicking background
-    const loginSection = document.getElementById('login');
-    if (loginSection) {
-        loginSection.addEventListener('click', function(e) {
-            if (e.target === this) {
-                toggleLogin();
-            }
-        });
-    }
-
-    // Fetch plans from backend
-    await fetchPlans();
-
-    // Make functions globally available
-    window.selectPlan = selectPlan;
-    window.scrollSports = scrollSports;
-    window.scrollSportsEvents = scrollSportsEvents;
-    window.toggleLogin = toggleLogin;
-    window.toggleSignup = toggleSignup;
-    window.processPayment = processPayment;
-    window.submitContactForm = submitContactForm;
-    
-    console.log('✅ Website initialized with backend integration');
-});
+    console.log("🚀 Frontend loaded cleanly");
+  });
 </script>
 </body>
 </html>
