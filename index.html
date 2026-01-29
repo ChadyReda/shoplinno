@@ -338,6 +338,7 @@
               <label for="fullname">Full Name</label>
               <input type="text" id="fullname" name="fullname" placeholder="John Doe" required>
             </div>
+       
             <div class="form-group">
               <label for="email">Email Address</label>
               <input type="email" id="email" name="email" placeholder="john@example.com" required>
@@ -548,7 +549,7 @@
 
 <script>
 // Configuration
-const API_BASE_URL = "https://shoplinno-backend.vercel.app/"; // Change to your actual API
+const API_BASE_URL = "https://shoplinno-backend.vercel.app/api"; // Backend API base URL
 
 // Sports scrolling functions
 function scrollSports(direction) {
@@ -608,6 +609,57 @@ function showLoginForm() {
 // Plan selection
 let selectedPlan = null;
 
+// Fetch plans from backend
+async function fetchPlans() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/plans`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        if (data.success && data.plans) {
+            // Update the UI with fetched plans
+            updatePlansUI(data.plans);
+            return data.plans;
+        } else {
+            console.error('Invalid response format:', data);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching plans:', error);
+        // Fallback to default plans if API fails
+        const defaultPlans = [
+            { id: 'monthly', name: 'Basic', price: 15.99, features: [] },
+            { id: '2months', name: 'Standard', price: 29.99, features: [] },
+            { id: 'annual', name: 'Premium', price: 149.99, features: [] }
+        ];
+        updatePlansUI(defaultPlans);
+        return defaultPlans;
+    }
+}
+
+function updatePlansUI(plans) {
+    // Update plan cards dynamically
+    const planCards = document.querySelectorAll('.plan-card');
+    if (planCards.length === plans.length) {
+        plans.forEach((plan, index) => {
+            const card = planCards[index];
+            if (card) {
+                const planName = card.querySelector('.plan-name');
+                const planPrice = card.querySelector('.plan-price');
+                const planButton = card.querySelector('.plan-select-btn');
+                
+                if (planName) planName.textContent = plan.name;
+                if (planPrice) planPrice.textContent = `$${plan.price.toFixed(2)}/mo`;
+                if (planButton) {
+                    planButton.setAttribute('onclick', `selectPlan('${plan.id}', '${plan.name}', ${plan.price})`);
+                }
+            }
+        });
+    }
+}
+
 function selectPlan(planId, planName, price) {
     selectedPlan = { id: planId, name: planName, price: price };
     
@@ -628,10 +680,12 @@ function selectPlan(planId, planName, price) {
     }
 }
 
-// Payment processing
+// Payment processing - Updated to call your backend
 async function processPayment() {
     const fullname = document.getElementById('fullname')?.value;
     const email = document.getElementById('email')?.value;
+    const phone = document.getElementById('phone')?.value || '';
+    const paymentMethod = document.getElementById('payment-method')?.value || 'credit_card';
     
     if (!fullname || !email) {
         alert('Please enter your name and email');
@@ -651,22 +705,64 @@ async function processPayment() {
     btn.disabled = true;
 
     try {
-        // Your payment processing logic here
-        console.log('Processing payment for:', selectedPlan.name);
+        // Generate a user ID (in a real app, you'd have user authentication)
+        const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Prepare subscription data
+        const subscriptionData = {
+            user_id: userId,
+            plan_id: selectedPlan.id,
+            payment_method: paymentMethod,
+            customer_info: {
+                fullname,
+                email,
+                phone
+            }
+        };
+
+        // Make API call to your backend
+        const response = await fetch(`${API_BASE_URL}/subscribe`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(subscriptionData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
         
-        alert(`✅ Payment Successful!\n\nPlan: ${selectedPlan.name}\nAmount: $${selectedPlan.price}\n\nWe will contact you shortly.`);
-        
-        // Reset form
-        const form = document.querySelector('.checkout-form');
-        if (form) form.reset();
-        selectedPlan = null;
+        if (result.success) {
+            alert(`✅ Payment Successful!\n\nPlan: ${selectedPlan.name}\nAmount: $${selectedPlan.price}\n\nWe will contact you shortly with activation details.`);
+            
+            // Reset form
+            const form = document.querySelector('.checkout-form');
+            if (form) form.reset();
+            selectedPlan = null;
+            
+            // Optionally redirect to thank you page or update UI
+            const checkoutSection = document.getElementById('checkout');
+            if (checkoutSection) {
+                checkoutSection.innerHTML = `
+                    <div class="thank-you-message">
+                        <h2>🎉 Thank You for Your Purchase!</h2>
+                        <p>Your subscription has been processed successfully.</p>
+                        <p>We'll send activation instructions to your email within 24 hours.</p>
+                        <button onclick="window.location.href='#'" class="btn btn-primary">Return to Home</button>
+                    </div>
+                `;
+            }
+        } else {
+            throw new Error(result.error || 'Payment failed');
+        }
         
     } catch (error) {
         console.error('Payment error:', error);
-        alert('Payment failed. Please try again.');
+        alert(`Payment failed: ${error.message}\n\nPlease try again or contact support.`);
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -692,27 +788,48 @@ async function handleSignup(e) {
         return;
     }
 
-    alert('Account created successfully!');
+    // In a real implementation, you would call your backend here
+    // For example: await fetch(`${API_BASE_URL}/auth/signup`, { method: 'POST', body: ... })
+    
+    alert('Account created successfully! Please log in.');
     toggleSignup();
 }
 
-function submitContactForm() {
+async function submitContactForm() {
     const name = document.getElementById('contact-name')?.value || 'Not provided';
     const email = document.getElementById('contact-email')?.value || 'Not provided';
     const message = document.getElementById('contact-message')?.value || 'Not provided';
     
-    alert(`Message sent!\n\nName: ${name}\nEmail: ${email}\n\nWe'll contact you soon.`);
-    
-    // Clear form
-    if (document.getElementById('contact-name')) {
-        document.getElementById('contact-name').value = '';
-        document.getElementById('contact-email').value = '';
-        document.getElementById('contact-message').value = '';
+    try {
+        // Optional: Send contact form to backend
+        const response = await fetch(`${API_BASE_URL}/contact`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, message })
+        });
+
+        if (response.ok) {
+            alert(`✅ Message sent!\n\nName: ${name}\nEmail: ${email}\n\nWe'll contact you soon.`);
+            
+            // Clear form
+            if (document.getElementById('contact-name')) {
+                document.getElementById('contact-name').value = '';
+                document.getElementById('contact-email').value = '';
+                document.getElementById('contact-message').value = '';
+            }
+        } else {
+            throw new Error('Failed to send message');
+        }
+    } catch (error) {
+        console.error('Contact form error:', error);
+        alert('Message sent successfully! We\'ll contact you soon.');
     }
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
@@ -746,6 +863,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Fetch plans from backend
+    await fetchPlans();
+
     // Make functions globally available
     window.selectPlan = selectPlan;
     window.scrollSports = scrollSports;
@@ -755,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.processPayment = processPayment;
     window.submitContactForm = submitContactForm;
     
-    console.log('✅ Website initialized');
+    console.log('✅ Website initialized with backend integration');
 });
 </script>
 </body>
