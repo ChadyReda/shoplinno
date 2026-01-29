@@ -796,35 +796,59 @@ async function handleSignup(e) {
 }
 
 async function submitContactForm() {
-    const name = document.getElementById('contact-name')?.value || 'Not provided';
-    const email = document.getElementById('contact-email')?.value || 'Not provided';
-    const message = document.getElementById('contact-message')?.value || 'Not provided';
+    const name = document.getElementById('contact-name')?.value.trim();
+    const email = document.getElementById('contact-email')?.value.trim();
+    const message = document.getElementById('contact-message')?.value.trim();
     
-    try {
-        // Optional: Send contact form to backend
-        const response = await fetch(`${API_BASE_URL}/contact`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name, email, message })
-        });
+    // Basic validation
+    if (!name || !email || !message) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    const submitBtn = document.querySelector('.contact-form button[type="button"]');
+    if (submitBtn) {
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Sending...';
+        submitBtn.disabled = true;
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/contact`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, email, message })
+            });
 
-        if (response.ok) {
-            alert(`✅ Message sent!\n\nName: ${name}\nEmail: ${email}\n\nWe'll contact you soon.`);
+            const result = await response.json();
             
-            // Clear form
-            if (document.getElementById('contact-name')) {
-                document.getElementById('contact-name').value = '';
-                document.getElementById('contact-email').value = '';
-                document.getElementById('contact-message').value = '';
+            if (result.success) {
+                alert(`✅ Message sent successfully!\n\nThank you ${name}, we'll get back to you soon.`);
+                
+                // Clear form
+                if (document.getElementById('contact-name')) {
+                    document.getElementById('contact-name').value = '';
+                    document.getElementById('contact-email').value = '';
+                    document.getElementById('contact-message').value = '';
+                }
+            } else {
+                throw new Error(result.error || 'Failed to send message');
             }
-        } else {
-            throw new Error('Failed to send message');
+        } catch (error) {
+            console.error('Contact form error:', error);
+            alert(`❌ Unable to send message: ${error.message}\n\nPlease try again or email us directly.`);
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
-    } catch (error) {
-        console.error('Contact form error:', error);
-        alert('Message sent successfully! We\'ll contact you soon.');
     }
 }
 
