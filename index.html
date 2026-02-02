@@ -7,6 +7,7 @@
 <meta name="description" content="Premium IPTV service with 10,000+ live TV channels, movies, and sports.">
 <link rel="stylesheet" href="css.css">
 <link rel="icon" href="img/image.png" type="image/png">
+
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17906905261"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -14,14 +15,7 @@
   gtag('js', new Date());
   gtag('config', 'AW-17906905261');
 </script>
-<script>
-  gtag('event', 'conversion', {
-    'send_to': 'AW-17906905261/_HBC12xjvAbEK3h1tpC',
-    'value': 1.0,
-    'currency': 'MAD',
-    'transaction_id': ''
-  });
-</script>
+
 </head>
 
 <body>
@@ -577,7 +571,18 @@ async function processSubscription() {
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error || "Submission failed");
 
-    alert("Thank you! Our team will contact you soon to complete your subscription. 🚀");
+	alert("Thank you! Our team will contact you soon to complete your subscription. 🚀");
+
+// Google Ads conversion
+gtag('event', 'conversion', {
+  send_to: 'AW-17906905261/T3BMCKqdm_AbEK3h1tpC',
+  value: selectedPlan.price,
+  currency: 'MAD',
+  transaction_id: Date.now().toString()
+});
+
+	
+
 
     // Clear form
     $("fullname").value = "";
